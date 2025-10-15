@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Court ID Lookup</title>
+    <style>
+      :root {
+        --pastel-green: #9fd6ae;
+        --pastel-green-light: #d8f3dc;
+        --pastel-green-dark: #2d6a4f;
+        --pastel-neutral: #f6fff1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(180deg, var(--pastel-neutral), #e6f7eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        color: #1c3b2c;
+      }
+
+      main {
+        width: 100%;
+        max-width: 720px;
+      }
+
+      .search-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid var(--pastel-green);
+        border-radius: 20px;
+        box-shadow: 0 12px 25px rgba(45, 106, 79, 0.12);
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        text-align: center;
+        color: var(--pastel-green-dark);
+      }
+
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .input-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      label {
+        font-weight: 600;
+        color: var(--pastel-green-dark);
+      }
+
+      select,
+      input[type="text"],
+      button {
+        border-radius: 12px;
+        border: 1px solid var(--pastel-green);
+        padding: 10px 16px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      select:focus,
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--pastel-green-dark);
+        box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.2);
+      }
+
+      input[type="text"] {
+        flex: 1 1 220px;
+        min-width: 160px;
+      }
+
+      button {
+        flex: 0 0 auto;
+        background: var(--pastel-green-dark);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        min-width: 120px;
+      }
+
+      button:hover {
+        background: #24563f;
+      }
+
+      .hint {
+        font-size: 0.9rem;
+        color: #3e6656;
+      }
+
+      #results {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid rgba(45, 106, 79, 0.2);
+        padding: 20px;
+        max-height: 420px;
+        overflow-y: auto;
+      }
+
+      .results-header {
+        font-weight: 600;
+        color: var(--pastel-green-dark);
+        margin-bottom: 12px;
+      }
+
+      .result-item {
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--pastel-neutral);
+        border: 1px solid rgba(45, 106, 79, 0.15);
+        margin-bottom: 10px;
+      }
+
+      .result-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .code {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #1f5138;
+      }
+
+      .description {
+        margin-top: 4px;
+        font-size: 0.95rem;
+      }
+
+      .message {
+        padding: 16px;
+        border-radius: 12px;
+        background: #fff8e6;
+        border: 1px solid rgba(245, 180, 80, 0.5);
+        color: #7a4a00;
+        font-size: 0.95rem;
+      }
+
+      @media (max-width: 520px) {
+        .search-card {
+          padding: 24px;
+        }
+
+        button {
+          width: 100%;
+        }
+
+        .input-row {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="search-card">
+        <h1>Suche nach Court IDs</h1>
+        <div class="controls">
+          <div>
+            <label for="version-select">Version auswählen</label>
+            <select id="version-select" aria-label="Version der Gerichtsliste">
+              <option value="" selected disabled>Bitte Version wählen</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="z. B. A10 oder A1000"
+              aria-label="Court ID suchen"
+            />
+            <button id="search-button" type="button">Suchen</button>
+          </div>
+          <p class="hint">
+            Suche mit den ersten drei Zeichen oder einer vollständigen Kennung. Beispiel: <code>A10</code> oder
+            <code>A1000</code>.
+          </p>
+        </div>
+        <div id="results" role="status" aria-live="polite">
+          <div class="message">Bitte eine Version wählen und mindestens drei Zeichen eingeben.</div>
+        </div>
+      </section>
+    </main>
+    <script>
+      const datasetConfig = [
+        { version: "3.2", label: "GDS Gerichte 3.2", path: "data/GDS.Gerichte_3.2.json" },
+        { version: "3.3", label: "GDS Gerichte 3.3", path: "data/GDS.Gerichte_3.3.json" },
+        { version: "3.4", label: "GDS Gerichte 3.4", path: "data/GDS.Gerichte_3.4.json" },
+        { version: "3.5", label: "GDS Gerichte 3.5", path: "data/GDS.Gerichte_3.5.json" },
+        { version: "3.6", label: "GDS Gerichte 3.6", path: "data/GDS.Gerichte_3.6.json" }
+      ];
+
+      const cache = new Map();
+      const versionSelect = document.getElementById("version-select");
+      const searchInput = document.getElementById("search-input");
+      const searchButton = document.getElementById("search-button");
+      const resultsContainer = document.getElementById("results");
+
+      function populateVersions() {
+        datasetConfig.forEach((entry) => {
+          const option = document.createElement("option");
+          option.value = entry.version;
+          option.textContent = entry.label;
+          versionSelect.appendChild(option);
+        });
+
+        const lastEntry = datasetConfig[datasetConfig.length - 1];
+        if (lastEntry?.version) {
+          versionSelect.value = lastEntry.version;
+          renderMessage(`Version ${lastEntry.version} ist vorausgewählt. Bitte mindestens drei Zeichen eingeben.`);
+        }
+      }
+
+      async function loadDataset(version) {
+        if (cache.has(version)) {
+          return cache.get(version);
+        }
+
+        const config = datasetConfig.find((entry) => entry.version === version);
+        if (!config) {
+          throw new Error("Unbekannte Version: " + version);
+        }
+
+        const response = await fetch(config.path);
+        if (!response.ok) {
+          throw new Error(`Konnte Daten für Version ${version} nicht laden (Status ${response.status}).`);
+        }
+
+        const jsonData = await response.json();
+        cache.set(version, jsonData);
+        return jsonData;
+      }
+
+      function renderMessage(text) {
+        resultsContainer.innerHTML = `<div class="message">${text}</div>`;
+      }
+
+      function renderResults(version, matches) {
+        if (!matches.length) {
+          renderMessage("Keine Treffer gefunden.");
+          return;
+        }
+
+        const resultMarkup = matches
+          .map(
+            ([code, description]) => `
+              <article class="result-item">
+                <div class="code">${code}</div>
+                <div class="description">${description || "—"}</div>
+              </article>
+            `
+          )
+          .join("");
+
+        resultsContainer.innerHTML = `
+          <div class="results-header">
+            Version ${version} · ${matches.length} ${matches.length === 1 ? "Treffer" : "Treffer"}
+          </div>
+          ${resultMarkup}
+        `;
+      }
+
+      async function handleSearch() {
+        const version = versionSelect.value;
+        const query = searchInput.value.trim().toUpperCase();
+
+        if (!version) {
+          renderMessage("Bitte zuerst eine Version auswählen.");
+          return;
+        }
+
+        if (query.length < 3) {
+          renderMessage("Bitte mindestens die ersten drei Zeichen einer Court ID eingeben.");
+          return;
+        }
+
+        try {
+          renderMessage("Suche läuft…");
+          const dataset = await loadDataset(version);
+          const entries = Array.isArray(dataset?.daten) ? dataset.daten : [];
+          const matches = entries.filter(([code]) => typeof code === "string" && code.toUpperCase().startsWith(query));
+          renderResults(version, matches);
+        } catch (error) {
+          console.error(error);
+          renderMessage("Beim Laden der Daten ist ein Fehler aufgetreten. Bitte erneut versuchen.");
+        }
+      }
+
+      function handleKeydown(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleSearch();
+        }
+      }
+
+      populateVersions();
+      versionSelect.addEventListener("change", () => {
+        if (searchInput.value.trim().length >= 3) {
+          handleSearch();
+        } else {
+          renderMessage("Version gewählt. Jetzt mindestens drei Zeichen eingeben.");
+        }
+      });
+      searchButton.addEventListener("click", handleSearch);
+      searchInput.addEventListener("keydown", handleKeydown);
+    </script>
+  </body>
+</html>
