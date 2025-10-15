@@ -1,0 +1,13 @@
+{
+  "name": "court-id-lookup",
+  "version": "1.0.0",
+  "description": "Electron App wrapper for the Court ID Lookup web application.",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^38.3.0"
+  }
+}

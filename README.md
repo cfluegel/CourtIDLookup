@@ -24,6 +24,17 @@ Gerichte, Staatsanwaltschaften und weitere Justizbehörden besitzen eindeutige X
 
 2. **Direktes Öffnen der Datei:** Ein Doppelklick auf `index.html` funktioniert nur in Browsern, die lokale Datei-Zugriffe per `fetch` zulassen. Für einen zuverlässigen Betrieb sollte deshalb Variante 1 verwendet werden.
 
+## Electron-App
+
+Das Projekt enthält zusätzlich eine einfache Electron-Hülle, mit der die HTML-Seite als Desktop-App genutzt werden kann. Die App greift direkt auf die JSON-Dateien zu, sodass kein lokaler Webserver notwendig ist.
+
+```bash
+npm install
+npm start
+```
+
+Der Startbefehl öffnet das Fenster mit derselben Oberfläche wie in der Browser-Variante. Die Daten bleiben innerhalb des Projekts und werden nur lokal gelesen.
+
 ## Entwicklung
 
 Die Seite lädt die gewählte JSON-Datei dynamisch, filtert die Datensätze nach Präfix der Court-ID und zeigt die Treffer an. Die Daten werden im Browser gecacht, damit ein Wechsel zwischen Versionen ohne erneuten Netzwerkzugriff möglich ist. Änderungen an den Codelisten können vorgenommen werden, indem weitere JSON-Dateien in `data/` abgelegt und im `datasetConfig`-Array innerhalb von `index.html` ergänzt werden.

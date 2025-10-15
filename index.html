@@ -240,12 +240,16 @@
           throw new Error("Unbekannte Version: " + version);
         }
 
-        const response = await fetch(config.path);
-        if (!response.ok) {
-          throw new Error(`Konnte Daten für Version ${version} nicht laden (Status ${response.status}).`);
+        let jsonData;
+        if (window.electronAPI?.loadDataset) {
+          jsonData = await window.electronAPI.loadDataset(config.path);
+        } else {
+          const response = await fetch(config.path);
+          if (!response.ok) {
+            throw new Error(`Konnte Daten für Version ${version} nicht laden (Status ${response.status}).`);
+          }
+          jsonData = await response.json();
         }
-
-        const jsonData = await response.json();
         cache.set(version, jsonData);
         return jsonData;
       }
