@@ -27,3 +27,5 @@ Gerichte, Staatsanwaltschaften und weitere Justizbehörden besitzen eindeutige X
 ## Entwicklung
 
 Die Seite lädt die gewählte JSON-Datei dynamisch, filtert die Datensätze nach Präfix der Court-ID und zeigt die Treffer an. Die Daten werden im Browser gecacht, damit ein Wechsel zwischen Versionen ohne erneuten Netzwerkzugriff möglich ist. Änderungen an den Codelisten können vorgenommen werden, indem weitere JSON-Dateien in `data/` abgelegt und im `datasetConfig`-Array innerhalb von `index.html` ergänzt werden.
+
+Weitere Hinweise zur Mitarbeit, Struktur und Tests findest du im Beitrag [`AGENTS.md`](AGENTS.md).

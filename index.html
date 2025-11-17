@@ -63,6 +63,39 @@
         gap: 12px;
       }
 
+      .mode-picker {
+        border: 1px solid rgba(45, 106, 79, 0.3);
+        border-radius: 12px;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .mode-picker legend {
+        margin: 0;
+        font-weight: 600;
+        color: var(--pastel-green-dark);
+      }
+
+      .mode-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .mode-option {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        color: #3e6656;
+      }
+
+      .mode-option input[type="radio"] {
+        accent-color: var(--pastel-green-dark);
+      }
+
       label {
         font-weight: 600;
         color: var(--pastel-green-dark);
@@ -185,14 +218,27 @@
             <input
               type="text"
               id="search-input"
-              placeholder="z. B. A10 oder A1000"
-              aria-label="Court ID suchen"
+              placeholder="z. B. A10 oder Amtsgericht"
+              aria-label="Suchbegriff eingeben"
             />
             <button id="search-button" type="button">Suchen</button>
           </div>
+          <fieldset class="mode-picker">
+            <legend>Suchmodus</legend>
+            <div class="mode-options" role="group" aria-label="Suchmodus wählen">
+              <label class="mode-option">
+                <input type="radio" name="search-mode" value="code" checked />
+                <span>Code (Prefix)</span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="search-mode" value="description" />
+                <span>Beschreibung (Teilstring)</span>
+              </label>
+            </div>
+          </fieldset>
           <p class="hint">
-            Suche mit den ersten drei Zeichen oder einer vollständigen Kennung. Beispiel: <code>A10</code> oder
-            <code>A1000</code>.
+            Für die Code-Suche mindestens drei Zeichen des Präfix eingeben (z. B. <code>A10</code>). Im Modus
+            <em>Beschreibung</em> wird nach Teilstrings innerhalb der Beschreibung gesucht (z. B. "Amtsgericht").
           </p>
         </div>
         <div id="results" role="status" aria-live="polite">
@@ -213,6 +259,7 @@
       const versionSelect = document.getElementById("version-select");
       const searchInput = document.getElementById("search-input");
       const searchButton = document.getElementById("search-button");
+      const searchModeRadios = document.querySelectorAll('input[name="search-mode"]');
       const resultsContainer = document.getElementById("results");
 
       function populateVersions() {
@@ -254,7 +301,7 @@
         resultsContainer.innerHTML = `<div class="message">${text}</div>`;
       }
 
-      function renderResults(version, matches) {
+      function renderResults(version, matches, mode) {
         if (!matches.length) {
           renderMessage("Keine Treffer gefunden.");
           return;
@@ -273,23 +320,35 @@
 
         resultsContainer.innerHTML = `
           <div class="results-header">
-            Version ${version} · ${matches.length} ${matches.length === 1 ? "Treffer" : "Treffer"}
+            Version ${version} · ${matches.length} ${matches.length === 1 ? "Treffer" : "Treffer"} · Modus: ${
+              mode === "description" ? "Beschreibung" : "Code"
+            }
           </div>
           ${resultMarkup}
         `;
       }
 
+      function getSearchMode() {
+        const checked = document.querySelector('input[name="search-mode"]:checked');
+        return checked?.value || "code";
+      }
+
       async function handleSearch() {
         const version = versionSelect.value;
-        const query = searchInput.value.trim().toUpperCase();
+        const rawQuery = searchInput.value.trim();
+        const searchMode = getSearchMode();
+        const minLengthMessage =
+          searchMode === "description"
+            ? "Bitte mindestens drei Zeichen für die Beschreibungssuche eingeben."
+            : "Bitte mindestens drei Zeichen einer Court ID eingeben.";
 
         if (!version) {
           renderMessage("Bitte zuerst eine Version auswählen.");
           return;
         }
 
-        if (query.length < 3) {
-          renderMessage("Bitte mindestens die ersten drei Zeichen einer Court ID eingeben.");
+        if (rawQuery.length < 3) {
+          renderMessage(minLengthMessage);
           return;
         }
 
@@ -297,8 +356,16 @@
           renderMessage("Suche läuft…");
           const dataset = await loadDataset(version);
           const entries = Array.isArray(dataset?.daten) ? dataset.daten : [];
-          const matches = entries.filter(([code]) => typeof code === "string" && code.toUpperCase().startsWith(query));
-          renderResults(version, matches);
+          const queryUpper = rawQuery.toUpperCase();
+          const queryLower = rawQuery.toLowerCase();
+          const matches = entries.filter(([code, description]) => {
+            if (searchMode === "description") {
+              const descText = typeof description === "string" ? description : String(description ?? "");
+              return descText.toLowerCase().includes(queryLower);
+            }
+            return typeof code === "string" && code.toUpperCase().startsWith(queryUpper);
+          });
+          renderResults(version, matches, searchMode);
         } catch (error) {
           console.error(error);
           renderMessage("Beim Laden der Daten ist ein Fehler aufgetreten. Bitte erneut versuchen.");
@@ -322,6 +389,13 @@
       });
       searchButton.addEventListener("click", handleSearch);
       searchInput.addEventListener("keydown", handleKeydown);
+      searchModeRadios.forEach((radio) => {
+        radio.addEventListener("change", () => {
+          if (versionSelect.value && searchInput.value.trim().length >= 3) {
+            handleSearch();
+          }
+        });
+      });
     </script>
   </body>
 </html>
